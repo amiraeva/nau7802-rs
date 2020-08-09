@@ -54,6 +54,11 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         Ok(adc)
     }
 
+    pub fn destroy(self) -> D {
+        let Self { i2c_dev } = self;
+        i2c_dev
+    }
+
     pub fn data_available(&mut self) -> Result<bool> {
         self.get_bit(Register::PuCtrl, PuCtrlBits::CR)
     }
