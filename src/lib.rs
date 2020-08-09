@@ -63,8 +63,19 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         self.get_bit(Register::PuCtrl, PuCtrlBits::CR)
     }
 
-    // assumes that data_avaiable has been called and returned true
-    pub fn read(&mut self) -> Result<i32> {
+    /// Checks for new data, returns nb::Error::WouldBlock if unavailable
+    pub fn read(&mut self) -> nb::Result<i32, Error> {
+        let data_available = self.data_available().map_err(nb::Error::Other)?;
+
+        if !data_available {
+            return Err(nb::Error::WouldBlock);
+        }
+
+        self.read_unchecked().map_err(nb::Error::Other)
+    }
+
+    /// assumes that data_avaiable has been called and returned true
+    pub fn read_unchecked(&mut self) -> Result<i32> {
         self.request_register(Register::AdcoB2)?;
 
         let mut buf = [0u8; 3]; // will hold an i24

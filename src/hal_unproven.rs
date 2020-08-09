@@ -11,13 +11,7 @@ impl<D: i2c::Read + i2c::Write> OneShot<Self, i32, Channel0> for Nau7802<D> {
     type Error = crate::Error;
 
     fn read(&mut self, _: &mut Channel0) -> nb::Result<i32, Self::Error> {
-        let data_available = self.data_available().map_err(nb::Error::Other)?;
-
-        if !data_available {
-            return Err(nb::Error::WouldBlock);
-        }
-
-        self.read().map_err(nb::Error::Other)
+        self.read()
     }
 }
 
