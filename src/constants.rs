@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum Register {
@@ -29,7 +30,7 @@ pub enum Register {
     PgaPwr = 0x1C,
     DeviceRev = 0x1F,
 }
-
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum PuCtrlBits {
@@ -43,6 +44,7 @@ pub enum PuCtrlBits {
     AVDDS,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum PgaRegisterBits {
@@ -54,6 +56,7 @@ pub enum PgaRegisterBits {
     RdOtpSel,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum PgaPwrRegisterBits {
@@ -63,6 +66,7 @@ pub enum PgaPwrRegisterBits {
     CapEn = 7,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum Ctrl2RegisterBits {

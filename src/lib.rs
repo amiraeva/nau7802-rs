@@ -13,6 +13,14 @@ pub use hal_unproven::*;
 mod constants;
 use constants::*;
 
+pub type Result<T> = core::result::Result<T, Error>;
+
+#[derive(Debug)]
+pub enum Error {
+    I2cError,
+    PowerupFailed,
+}
+
 pub struct Nau7802<D: i2c::Read + i2c::Write> {
     i2c_dev: D,
 }
@@ -63,11 +71,11 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         Ok(adc_result)
     }
 
-    fn begin_afe_calibration(&mut self) -> Result<()> {
+    pub fn begin_afe_calibration(&mut self) -> Result<()> {
         self.set_bit(Register::Ctrl2, Ctrl2RegisterBits::Cals)
     }
 
-    fn poll_afe_calibration_status(&mut self) -> Result<AfeCalibrationStatus> {
+    pub fn poll_afe_calibration_status(&mut self) -> Result<AfeCalibrationStatus> {
         if self.get_bit(Register::Ctrl2, Ctrl2RegisterBits::Cals)? {
             return Ok(AfeCalibrationStatus::InProgress);
         }
@@ -79,55 +87,30 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         Ok(AfeCalibrationStatus::Success)
     }
 
-    fn set_sample_rate(&mut self, sps: SamplesPerSecond) -> Result<()> {
+    pub fn set_sample_rate(&mut self, sps: SamplesPerSecond) -> Result<()> {
         const SPS_MASK: u8 = 0b10001111;
         const SPS_START_BIT_IDX: u8 = 4;
 
         self.set_function_helper(Register::Ctrl2, SPS_MASK, SPS_START_BIT_IDX, sps as _)
     }
 
-    fn set_gain(&mut self, gain: Gain) -> Result<()> {
+    pub fn set_gain(&mut self, gain: Gain) -> Result<()> {
         const GAIN_MASK: u8 = 0b11111000;
         const GAIN_START_BIT: u8 = 0;
-        // let mut val = self.get_register(Register::Ctrl1)?;
 
-        // val &= GAIN_MASK;
-        // val |= gain as u8;
-
-        // self.set_register(Register::Ctrl1, val)
         self.set_function_helper(Register::Ctrl1, GAIN_MASK, GAIN_START_BIT, gain as _)
     }
 
-    fn set_ldo(&mut self, ldo: Ldo) -> Result<()> {
+    pub fn set_ldo(&mut self, ldo: Ldo) -> Result<()> {
         const LDO_MASK: u8 = 0b11000111;
         const LDO_START_BIT: u8 = 3;
-
-        // let mut val = self.get_register(Register::Ctrl1)?;
-        // val &= LDO_MASK;
-        // val |= (ldo as u8) << LDO_START_BIT_IDX;
-
-        // self.set_register(Register::Ctrl1, val)?;
 
         self.set_function_helper(Register::Ctrl1, LDO_MASK, LDO_START_BIT, ldo as _)?;
 
         self.set_bit(Register::PuCtrl, PuCtrlBits::AVDDS)
     }
 
-    fn set_function_helper(
-        &mut self,
-        reg: Register,
-        mask: u8,
-        start_idx: u8,
-        new_val: u8,
-    ) -> Result<()> {
-        let mut val = self.get_register(reg)?;
-        val &= mask;
-        val |= new_val << start_idx;
-
-        self.set_register(reg, val)
-    }
-
-    fn power_up(&mut self) -> Result<()> {
+    pub fn power_up(&mut self) -> Result<()> {
         const NUM_ATTEMPTS: usize = 100;
 
         self.set_bit(Register::PuCtrl, PuCtrlBits::PUD)?;
@@ -147,15 +130,15 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         }
     }
 
-    fn start_reset(&mut self) -> Result<()> {
+    pub fn start_reset(&mut self) -> Result<()> {
         self.set_bit(Register::PuCtrl, PuCtrlBits::RR)
     }
 
-    fn finish_reset(&mut self) -> Result<()> {
+    pub fn finish_reset(&mut self) -> Result<()> {
         self.clear_bit(Register::PuCtrl, PuCtrlBits::RR)
     }
 
-    fn misc_init(&mut self) -> Result<()> {
+    pub fn misc_init(&mut self) -> Result<()> {
         const TURN_OFF_CLK_CHPL: u8 = 0x30;
 
         // Turn off CLK_CHP. From 9.1 power on sequencing
@@ -163,6 +146,20 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
 
         // Enable 330pF decoupling cap on chan 2. From 9.14 application circuit note
         self.set_bit(Register::PgaPwr, PgaPwrRegisterBits::CapEn)
+    }
+
+    fn set_function_helper(
+        &mut self,
+        reg: Register,
+        mask: u8,
+        start_idx: u8,
+        new_val: u8,
+    ) -> Result<()> {
+        let mut val = self.get_register(reg)?;
+        val &= mask;
+        val |= new_val << start_idx;
+
+        self.set_register(reg, val)
     }
 
     fn set_bit<B: RegisterBits>(&mut self, addr: Register, bit_idx: B) -> Result<()> {
@@ -209,12 +206,4 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
             .write(Self::DEVICE_ADDRESS, slice::from_ref(&reg))
             .map_err(|_| Error::I2cError)
     }
-}
-
-pub type Result<T> = core::result::Result<T, Error>;
-
-#[derive(Debug)]
-pub enum Error {
-    I2cError,
-    PowerupFailed,
 }
