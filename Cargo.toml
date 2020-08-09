@@ -3,6 +3,10 @@ name = "nau7802"
 version = "0.1.0-alpha"
 authors = ["Amer Safdari <amersafdari@gmail.com>"]
 edition = "2018"
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/amiraeva/nau7802-rs"
+description = "Rust library for the NAU7802 I2C ADC using embedded-hal traits"
 
 [lib]
 test = false
