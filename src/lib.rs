@@ -1,9 +1,8 @@
+#![no_std]
+
 use byteorder::ByteOrder as _;
 use core::{iter, slice};
-use embedded_hal::{
-    adc::{Channel, OneShot},
-    blocking::i2c,
-};
+use embedded_hal::blocking::i2c;
 
 pub struct Nau7802<D: i2c::Read + i2c::Write> {
     i2c_dev: D,
@@ -38,12 +37,12 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         Ok(adc)
     }
 
-    fn data_available(&mut self) -> Result<bool> {
+    pub fn data_available(&mut self) -> Result<bool> {
         self.get_bit(Register::PuCtrl, PuCtrlBits::CR)
     }
 
     // assumes that data_avaiable has been called and returned true
-    fn read(&mut self) -> Result<i32> {
+    pub fn read(&mut self) -> Result<i32> {
         self.request_register(Register::AdcoB2)?;
 
         let mut buf = [0u8; 3]; // will hold an i24
@@ -203,33 +202,37 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
     }
 }
 
-impl<D: i2c::Read + i2c::Write> OneShot<Self, i32, Channel0> for Nau7802<D> {
-    type Error = Error;
+#[cfg(feature = "embedded-hal-adc")]
+mod unproven {
+    use embedded_hal::adc::{Channel, OneShot};
 
-    fn read(&mut self, _: &mut Channel0) -> nb::Result<i32, Self::Error> {
-        let data_available = self.data_available().map_err(nb::Error::Other)?;
+    impl<D: i2c::Read + i2c::Write> OneShot<Self, i32, Channel0> for Nau7802<D> {
+        type Error = Error;
 
-        if !data_available {
-            return Err(nb::Error::WouldBlock);
+        fn read(&mut self, _: &mut Channel0) -> nb::Result<i32, Self::Error> {
+            let data_available = self.data_available().map_err(nb::Error::Other)?;
+
+            if !data_available {
+                return Err(nb::Error::WouldBlock);
+            }
+
+            self.read().map_err(nb::Error::Other)
         }
-
-        self.read().map_err(nb::Error::Other)
     }
-}
 
-// struct Channel0;
-type Channel0 = ();
+    type Channel0 = ();
 
-impl<D: i2c::Read + i2c::Write> Channel<Nau7802<D>> for Channel0 {
-    type ID = ();
-    fn channel() -> Self::ID {
-        ()
+    impl<D: i2c::Read + i2c::Write> Channel<Nau7802<D>> for Channel0 {
+        type ID = ();
+        fn channel() -> Self::ID {
+            ()
+        }
     }
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug, ufmt::derive::uDebug)]
+#[derive(Debug)]
 pub enum Error {
     I2cError,
     PowerupFailed,
@@ -373,13 +376,4 @@ enum AfeCalibrationStatus {
     InProgress,
     Failure,
     Success,
-}
-
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
 }
