@@ -4,6 +4,15 @@ use byteorder::ByteOrder as _;
 use core::{iter, slice};
 use embedded_hal::blocking::i2c;
 
+#[cfg(feature = "embedded-hal-adc")]
+mod hal_unproven;
+
+#[cfg(feature = "embedded-hal-adc")]
+pub use hal_unproven::*;
+
+mod constants;
+use constants::*;
+
 pub struct Nau7802<D: i2c::Read + i2c::Write> {
     i2c_dev: D,
 }
@@ -202,178 +211,10 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
     }
 }
 
-#[cfg(feature = "embedded-hal-adc")]
-mod unproven {
-    use embedded_hal::adc::{Channel, OneShot};
-
-    impl<D: i2c::Read + i2c::Write> OneShot<Self, i32, Channel0> for Nau7802<D> {
-        type Error = Error;
-
-        fn read(&mut self, _: &mut Channel0) -> nb::Result<i32, Self::Error> {
-            let data_available = self.data_available().map_err(nb::Error::Other)?;
-
-            if !data_available {
-                return Err(nb::Error::WouldBlock);
-            }
-
-            self.read().map_err(nb::Error::Other)
-        }
-    }
-
-    type Channel0 = ();
-
-    impl<D: i2c::Read + i2c::Write> Channel<Nau7802<D>> for Channel0 {
-        type ID = ();
-        fn channel() -> Self::ID {
-            ()
-        }
-    }
-}
-
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
     I2cError,
     PowerupFailed,
-}
-
-#[derive(Clone, Copy)]
-#[repr(u8)]
-enum Register {
-    PuCtrl = 0x00,
-    Ctrl1,
-    Ctrl2,
-    Ocal1B2,
-    Ocal1B1,
-    Ocal1B0,
-    Gcal1B3,
-    Gcal1B2,
-    Gcal1B1,
-    Gcal1B0,
-    Ocal2B2,
-    Ocal2B1,
-    Ocal2B0,
-    Gcal2B3,
-    Gcal2B2,
-    Gcal2B1,
-    Gcal2B0,
-    I2CControl,
-    AdcoB2,
-    AdcoB1,
-    AdcoB0,
-    Adc = 0x15, //Shared ADC and OTP 32:24
-    OtpB1,      //OTP 23:16 or 7:0?
-    OtpB0,      //OTP 15:8
-    Pga = 0x1B,
-    PgaPwr = 0x1C,
-    DeviceRev = 0x1F,
-}
-
-#[derive(Clone, Copy)]
-#[repr(u8)]
-enum PuCtrlBits {
-    RR = 0,
-    PUD,
-    PUA,
-    PUR,
-    CS,
-    CR,
-    OSCS,
-    AVDDS,
-}
-
-#[derive(Clone, Copy)]
-#[repr(u8)]
-enum PgaRegisterBits {
-    ChpDis = 0,
-    Inv = 3,
-    BypassEn,
-    OutEn,
-    LdoMode,
-    RdOtpSel,
-}
-
-#[derive(Clone, Copy)]
-#[repr(u8)]
-enum PgaPwrRegisterBits {
-    Curr = 0,
-    AdcCurr = 2,
-    MstrBiasCurr = 4,
-    CapEn = 7,
-}
-
-#[derive(Clone, Copy)]
-#[repr(u8)]
-enum Ctrl2RegisterBits {
-    CalMod = 0,
-    Cals = 2,
-    CalError = 3,
-    Crs = 4,
-    Chs = 7,
-}
-
-trait RegisterBits {
-    fn get(&self) -> u8;
-}
-
-macro_rules! impl_register_bits {
-    ($($type:ident),*) => {
-        $(
-            impl RegisterBits for $type {
-                fn get(&self) -> u8 {
-                    *self as _
-                }
-            }
-        )*
-    }
-}
-
-impl_register_bits!(
-    PuCtrlBits,
-    PgaRegisterBits,
-    PgaPwrRegisterBits,
-    Ctrl2RegisterBits
-);
-
-#[derive(Clone, Copy)]
-#[repr(u8)]
-pub enum Ldo {
-    L2v4 = 0b111,
-    L2v7 = 0b110,
-    L3v0 = 0b101,
-    L3v3 = 0b100,
-    L3v6 = 0b011,
-    L3v9 = 0b010,
-    L3v2 = 0b001,
-    L4v5 = 0b000,
-}
-
-#[derive(Clone, Copy)]
-#[repr(u8)]
-pub enum Gain {
-    G128 = 0b111,
-    G64 = 0b110,
-    G32 = 0b101,
-    G16 = 0b100,
-    G8 = 0b011,
-    G4 = 0b010,
-    G2 = 0b001,
-    G1 = 0b000,
-}
-
-#[derive(Clone, Copy)]
-#[repr(u8)]
-pub enum SamplesPerSecond {
-    SPS320 = 0b111,
-    SPS80 = 0b011,
-    SPS40 = 0b010,
-    SPS20 = 0b001,
-    SPS10 = 0b000,
-}
-
-enum AfeCalibrationStatus {
-    InProgress,
-    Failure,
-    Success,
 }
