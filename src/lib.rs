@@ -2,7 +2,7 @@
 
 use byteorder::ByteOrder as _;
 use core::{iter, slice};
-use embedded_hal::blocking::i2c;
+use embedded_hal::blocking::{i2c, delay::DelayMs};
 
 #[cfg(feature = "embedded-hal-adc")]
 mod hal_unproven;
@@ -29,20 +29,22 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
     const DEVICE_ADDRESS: u8 = 0x2A;
 
     #[inline]
-    pub fn new(i2c_dev: D) -> Result<Self> {
-        Self::new_with_settings(i2c_dev, Ldo::L3v3, Gain::G128, SamplesPerSecond::SPS320)
+    pub fn new<T: From<u8>, W: DelayMs<T>>(i2c_dev: D, wait: &mut W) -> Result<Self> {
+        Self::new_with_settings(i2c_dev, Ldo::L3v3, Gain::G128, SamplesPerSecond::SPS320, wait)
     }
 
-    pub fn new_with_settings(
+    pub fn new_with_settings<T: From<u8>, W: DelayMs<T>>(
         i2c_dev: D,
         ldo: Ldo,
         gain: Gain,
         sps: SamplesPerSecond,
+        wait: &mut W
     ) -> Result<Self> {
         let mut adc = Self { i2c_dev };
 
         adc.start_reset()?;
         // need 1 ms delay here maybe?
+        wait.delay_ms(T::from(1));
         adc.finish_reset()?;
         adc.power_up()?;
         adc.set_ldo(ldo)?;
@@ -50,6 +52,7 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         adc.set_sample_rate(sps)?;
         adc.misc_init()?;
         adc.begin_afe_calibration()?;
+        wait.delay_ms(T::from(1));
 
         Ok(adc)
     }
