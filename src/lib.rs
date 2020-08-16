@@ -52,7 +52,8 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         adc.set_sample_rate(sps)?;
         adc.misc_init()?;
         adc.begin_afe_calibration()?;
-        wait.delay_ms(T::from(1));
+
+        while adc.poll_afe_calibration_status()? != AfeCalibrationStatus::Success {}
 
         Ok(adc)
     }

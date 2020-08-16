@@ -5,7 +5,7 @@ use embedded_hal::{
     blocking::i2c,
 };
 
-pub type Channel0 = ();
+pub struct Channel0;
 
 impl<D: i2c::Read + i2c::Write> OneShot<Self, i32, Channel0> for Nau7802<D> {
     type Error = crate::Error;

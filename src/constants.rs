@@ -136,6 +136,7 @@ pub enum SamplesPerSecond {
     SPS10 = 0b000,
 }
 
+#[derive(PartialEq)]
 pub enum AfeCalibrationStatus {
     InProgress,
     Failure,
