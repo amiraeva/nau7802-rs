@@ -23,13 +23,14 @@ pub enum Register {
     AdcoB2,
     AdcoB1,
     AdcoB0,
-    Adc = 0x15, //Shared ADC and OTP 32:24
-    OtpB1,      //OTP 23:16 or 7:0?
-    OtpB0,      //OTP 15:8
+    Adc = 0x15, // Shared ADC and OTP 32:24
+    OtpB1,      // OTP 23:16 or 7:0?
+    OtpB0,      // OTP 15:8
     Pga = 0x1B,
     PgaPwr = 0x1C,
     DeviceRev = 0x1F,
 }
+
 #[allow(dead_code)]
 #[derive(Clone, Copy)]
 #[repr(u8)]
