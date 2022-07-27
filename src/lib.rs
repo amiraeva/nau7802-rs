@@ -2,7 +2,7 @@
 
 use byteorder::ByteOrder as _;
 use core::{iter, slice};
-use embedded_hal::blocking::{i2c, delay::DelayMs};
+use embedded_hal::blocking::{delay::DelayMs, i2c};
 
 #[cfg(feature = "embedded-hal-adc")]
 mod hal_unproven;
@@ -11,7 +11,7 @@ mod hal_unproven;
 pub use hal_unproven::*;
 
 mod constants;
-use constants::*;
+pub use constants::*;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -30,7 +30,13 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
 
     #[inline]
     pub fn new<T: From<u8>, W: DelayMs<T>>(i2c_dev: D, wait: &mut W) -> Result<Self> {
-        Self::new_with_settings(i2c_dev, Ldo::L3v3, Gain::G128, SamplesPerSecond::SPS320, wait)
+        Self::new_with_settings(
+            i2c_dev,
+            Ldo::L3v3,
+            Gain::G128,
+            SamplesPerSecond::SPS320,
+            wait,
+        )
     }
 
     pub fn new_with_settings<T: From<u8>, W: DelayMs<T>>(
@@ -38,7 +44,7 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
         ldo: Ldo,
         gain: Gain,
         sps: SamplesPerSecond,
-        wait: &mut W
+        wait: &mut W,
     ) -> Result<Self> {
         let mut adc = Self { i2c_dev };
 
