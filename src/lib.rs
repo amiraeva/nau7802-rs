@@ -2,13 +2,7 @@
 
 use byteorder::ByteOrder as _;
 use core::{iter, slice};
-use embedded_hal::blocking::{delay::DelayMs, i2c};
-
-#[cfg(feature = "embedded-hal-adc")]
-mod hal_unproven;
-
-#[cfg(feature = "embedded-hal-adc")]
-pub use hal_unproven::*;
+use embedded_hal::{delay::DelayNs, i2c};
 
 mod constants;
 pub use constants::*;
@@ -21,25 +15,25 @@ pub enum Error {
     PowerupFailed,
 }
 
-pub struct Nau7802<D: i2c::Read + i2c::Write> {
+pub struct Nau7802<D: i2c::I2c> {
     i2c_dev: D,
 }
 
-impl<D: i2c::Read + i2c::Write> Nau7802<D> {
+impl<D: i2c::I2c> Nau7802<D> {
     const DEVICE_ADDRESS: u8 = 0x2A;
 
     #[inline]
-    pub fn new<T: From<u8>, W: DelayMs<T>>(i2c_dev: D, wait: &mut W) -> Result<Self> {
+    pub fn new<W: DelayNs>(i2c_dev: D, wait: &mut W) -> Result<Self> {
         Self::new_with_settings(
             i2c_dev,
             Ldo::L3v3,
             Gain::G128,
-            SamplesPerSecond::SPS320,
+            SamplesPerSecond::SPS10,
             wait,
         )
     }
 
-    pub fn new_with_settings<T: From<u8>, W: DelayMs<T>>(
+    pub fn new_with_settings<W: DelayNs>(
         i2c_dev: D,
         ldo: Ldo,
         gain: Gain,
@@ -50,7 +44,7 @@ impl<D: i2c::Read + i2c::Write> Nau7802<D> {
 
         adc.start_reset()?;
         // need 1 ms delay here maybe?
-        wait.delay_ms(T::from(1));
+        wait.delay_ms(1);
         adc.finish_reset()?;
         adc.power_up()?;
         adc.set_ldo(ldo)?;
