@@ -14,10 +14,9 @@ bench = false
 
 [features]
 default = []
-embedded-hal-adc = ["embedded-hal/unproven"]
 
 [dependencies]
-embedded-hal = "0.2.4"
+embedded-hal = "1.0.0"
 nb = "1"
 
 [dependencies.byteorder]
